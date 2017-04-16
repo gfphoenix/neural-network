@@ -118,14 +118,9 @@ class NeuralNetwork:
                     df = self.dfn(hs[k])
                     acc *= df
                     self.bias[k] += learnrate * acc
-                    # FIXME: treat acc as col vector and hs[k] as row vector
-                    # so the result is a matrix which matches the shape of the weights
-                    # !!!
-                    # deltaW = np.dot(acc, xs[k])
-                    deltaW = np.dot(acc.reshape((-1,1)), xs[k].reshape((1,-1)))
+                    deltaW = acc[:, None] * xs[k]
                     # R M => R !!!
-                    # acc = np.dot(acc, self.weights[k])
-                    acc = np.dot(acc.reshape((1,-1)), self.weights[k])[0]
+                    acc = np.dot(acc, self.weights[k])
                     self.weights[k] += learnrate * deltaW
 
     def batch_train(test_x, test_y):
