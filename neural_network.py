@@ -22,6 +22,10 @@ def check_shape(shape):
 class NeuralNetwork:
     '''
     multi layer neural network
+    the input and output values are treated as column vector,
+    so the shape of a weight from l1 to l2 is size(l2) x size(l1)
+    I personaly prefer this kind of notation, because the backpropgation
+    write from left to right, and conform to the multiplycation of matrix/vector
     '''
     def __init__(self, shape, fn=(sigmoid, d_sigmoid), learnrate=.2, epochs=5000):
         self.fn = fn[0]
@@ -109,11 +113,10 @@ class NeuralNetwork:
                     h = np.dot(w, x) + b
                     hs.append(h)
                     x = self.fn(h)
-                y2 = x
-                delta = y - y2
+                error = y - x
 
                 # backpropgation to adjust the weights
-                acc = np.copy(delta)
+                acc = np.copy(error)
                 for k in range(-1, -N, -1):
                     df = self.dfn(hs[k])
                     acc *= df
@@ -126,8 +129,45 @@ class NeuralNetwork:
     def batch_train(test_x, test_y):
         '''
         batch training network
+        the batch size is len(test_x)
         '''
-        pass
+        epochs = self.epochs
+        learnrate = self.learnrate
+        N = self.layers()+1
+        show = self.debug['progress']
+        tn = self.debug['n']
+        for _ in range(epochs):
+            if show and _ % tn == 0:
+                print('epochs : %d/%d' % (_, epochs))
+            delta_bias = [np.zeros(shape=b.shape) for b in self.bias]
+            delta_weights = [np.zeros(shape=w.shape) for w in self.weights]
+            for x, y in zip(test_x, test_y):
+                # cache each input linear combination of the activation function
+                hs = []
+                xs = []
+                for w,b in zip(self.weights, self.bias):
+                    xs.append(x)
+                    h = np.dot(w, x) + b
+                    hs.append(h)
+                    x = self.fn(h)
+                error = y - x
+
+                # backpropgation to adjust the weights
+                acc = np.copy(error)
+                for k in range(-1, -N, -1):
+                    df = self.dfn(hs[k])
+                    acc *= df
+                    delta_bias[k] += acc
+                    deltaW = acc[:, None] * xs[k]
+                    # R M => R !!!
+                    acc = np.dot(acc, self.weights[k])
+                    delta_weights[k] += deltaW
+                    
+            m = len(test_x) # batch size
+            for idx in range(len(self.weights)):
+                self.weights[idx] += learnrate * delta_weights[idx] / m
+            for idx in range(len(self.bias)):
+                self.bias[idx] += learnrate * delta_bias[idx] / m
 
     def save(self, name):
         '''
